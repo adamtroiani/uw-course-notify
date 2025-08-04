@@ -1,23 +1,28 @@
 import requests
 import argparse
 import yaml
-
-DEBUG = True
+import json 
 
 BASE_URL = "https://openapi.data.uwaterloo.ca/v3"
 API_KEYS_PATH = ".env/api_keys.yaml"
 
 def format_section_info(section):
-  course_id = section["courseId"]
+  course_component = section["courseComponent"]
   section_num = section["classSection"]
-  campus = section["locationName"]
   
+  schedule_data = section["scheduleData"][0]
+  try:
+    start_time =  schedule_data["classMeetingStartTime"].split("T")[1]
+    end_time =  schedule_data["classMeetingEndTime"].split("T")[1]
+    class_days = schedule_data["classMeetingDayPatternCode"]
+    if start_time == end_time:
+      time = "ONLINE"
+    else:
+      time = f"{start_time}-{end_time} {class_days}"
+  except:
+    time = "null"
   
-  # classes = section["classes"]
-  time = "0"
-  # time = classes[0]["date"]["start_time"] + "-" + classes[0]["date"]["end_time"]
-  
-  return f"id:{course_id}, section:{section_num} ({campus}) [{time}]"
+  return f"{course_component} {section_num} [{time}]"
   
 def has_capacity(course, term_code):
   print(f"Checking capacity for {course}...")
@@ -30,19 +35,27 @@ def has_capacity(course, term_code):
     headers["x-api-key"] = api_keys.get("uwaterloo")
 
   response = requests.get(url, headers=headers).json()
-  if DEBUG:
-    print(response)
+  response = list(filter(lambda section: section["courseComponent"] == "LEC", response))
+  response.sort(key=lambda section: section["classSection"])
+  with open(".debug/response.json", "w") as file:
+    file.write(json.dumps(response, indent=2))
     
   if isinstance(response, dict):
     print("Course not found")
     return
   
-  data = response[0]
-  enrollment_capacity = data["maxEnrollmentCapacity"]
-  enrollment_total = data["enrolledStudents"]
+  res = []
+  for section in response:
+    enrollment_capacity = section["maxEnrollmentCapacity"]
+    enrollment_total = section["enrolledStudents"]
 
-  if enrollment_total < enrollment_capacity:
-    print(format_section_info(data["scheduleData"]))
+    if enrollment_total < enrollment_capacity:
+      res.append(format_section_info(section))
+  
+  if res:
+    print("Openings:")
+    for section in res:
+      print(f"  {section}")
   else:
     print(f"{course} is currently full")
 
