@@ -1,12 +1,13 @@
 import { Image } from 'expo-image';
-import { ActivityIndicator, Platform, StyleSheet } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, AppState } from 'react-native';
 import { useEffect, useState } from 'react';
-import { AppState, Platform } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import * as Notifications from "expo-notifications"
+import Constants from "expo-constants"
 
 // ---------- API helpers ----------
 const API_HOST = Platform.select({
@@ -22,38 +23,38 @@ type Availability = {
 // ---------------------------------
 
 const POLL_EVERY_MS = 5_000;
+const COURSE_CODE   = 'CLAS 202';                                   //  NEW
 
 export default function HomeScreen() {
   const [data, setData]   = useState<Availability | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /* ───────── 1. SUBSCRIBE FOR PUSHES ONCE ───────── */
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-
-    const fetchAvailability = async () => {
-      try {
-        if (AppState.currentState !== 'active') return; // skip if app in background
-        const res = await fetch(
-          `${API_HOST}/availability/${encodeURIComponent('CLAS 202')}`,
-        );
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        const json: Availability = await res.json();
-        setData(json);
-        setError(null);
-      } catch (e) {
-        setError((e as Error).message);
-      } finally {
-        setLoading(false);
+    (async () => {
+      // Ask user permission
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Push permission not granted');
+        return;
       }
-    };
 
-    fetchAvailability();
+      // Get Expo push token
+      const { data: token } = await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+      });
 
-    intervalId = setInterval(fetchAvailability, POLL_EVERY_MS);
-
-    return () => clearInterval(intervalId);
+      // Send token to your FastAPI backend
+      await fetch(`${API_HOST}/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course: COURSE_CODE, push_token: token }),
+      });
+      console.log('✔ Subscribed for pushes:', token);
+    })().catch(console.error);
   }, []);
+  /* ──────────────────────────────────────────────── */
 
   return (
     <ParallaxScrollView
