@@ -1,68 +1,56 @@
-import requests
-import argparse
-import yaml
-import json 
+from fastapi import FastAPI
+from fastapi_utils.tasks import repeat_every
+from pydantic_settings import BaseSettings
+import uvicorn, argparse, os
 
-BASE_URL = "https://openapi.data.uwaterloo.ca/v3"
-API_KEYS_PATH = ".env/api_keys.yaml"
+from check_availability import check_availability
+# from push import notify_ios_clients
+from term import get_term_code
 
-def format_section_info(section):
-  course_component = section["courseComponent"]
-  section_num = section["classSection"]
-  
-  schedule_data = section["scheduleData"][0]
-  try:
-    start_time =  schedule_data["classMeetingStartTime"].split("T")[1]
-    end_time =  schedule_data["classMeetingEndTime"].split("T")[1]
-    class_days = schedule_data["classMeetingDayPatternCode"]
-    if start_time == end_time:
-      time = "ONLINE"
-    else:
-      time = f"{start_time}-{end_time} {class_days}"
-  except:
-    time = "null"
-  
-  return f"{course_component} {section_num} [{time}]"
-  
-def has_capacity(course, term_code):
-  print(f"Checking capacity for {course}...")
-  course_subject, catalog_number = course.split(" ")
-  url = f"{BASE_URL}/ClassSchedules/{term_code}/{course_subject}/{catalog_number}"
-  
-  headers = {}
-  with open(API_KEYS_PATH, "r") as file:
-    api_keys = yaml.safe_load(file)
-    headers["x-api-key"] = api_keys.get("uwaterloo")
+class Settings(BaseSettings):
+    course_code: str
+    term_code:   int = get_term_code(next_term=True)
 
-  response = requests.get(url, headers=headers).json()
-  response = list(filter(lambda section: section["courseComponent"] == "LEC", response))
-  response.sort(key=lambda section: section["classSection"])
-  with open(".debug/response.json", "w") as file:
-    file.write(json.dumps(response, indent=2))
-    
-  if isinstance(response, dict):
-    print("Course not found")
-    return
-  
-  res = []
-  for section in response:
-    enrollment_capacity = section["maxEnrollmentCapacity"]
-    enrollment_total = section["enrolledStudents"]
+settings: Settings
 
-    if enrollment_total < enrollment_capacity:
-      res.append(format_section_info(section))
-  
-  if res:
-    print("Openings:")
-    for section in res:
-      print(f"  {section}")
-  else:
-    print(f"{course} is currently full")
+def build_app(config: Settings) -> FastAPI:
+    app = FastAPI(
+        title="UW Notify API",
+        version="0.0.0",
+    )
+
+    @app.get("/availability/{course}")
+    async def availability(course:str):
+        available_sections = check_availability(course, settings.term_code)
+        return {"course": course, "available_sections": available_sections}
+        
+    @repeat_every(seconds=5)
+    async def poll_open_seats() -> None:
+        open_sections = check_availability(
+            config.course_code,
+            config.term_code
+        )
+        if open_sections:
+            print(open_sections)
+            # await notify_ios_clients(open_sections)
+        else:
+            print("Class is full.")
+
+    @app.on_event("startup")
+    async def _startup() -> None:
+        await poll_open_seats()
+
+    return app
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description="Check course capacity")
-  parser.add_argument("course_code", help="Course code to check (i.e. CLAS 202)")
-  parser.add_argument("term_code", help="Term you wish to take the course")
-  args = parser.parse_args()
-  
-  has_capacity(args.course_code, args.term_code)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("course_code", help="e.g. 'CLAS 202'")
+    args = parser.parse_args()
+
+    settings = Settings(course_code=args.course_code)
+    app       = build_app(settings)
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+else:
+    settings = Settings(course_code=os.getenv("COURSE_CODE", "CLAS 202"))
+    app      = build_app(settings)
