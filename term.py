@@ -1,6 +1,5 @@
 import requests
 import yaml
-import json 
 
 BASE_URL = "https://openapi.data.uwaterloo.ca/v3"
 API_KEYS_PATH = ".env/api_keys.yaml"
