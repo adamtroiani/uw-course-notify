@@ -37,6 +37,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "projectId": "a433e5ea-8784-43b8-a46e-4fd691907705"
     }
   }
 }
