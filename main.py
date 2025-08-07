@@ -1,12 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi_utils.tasks import repeat_every
-from pydantic_settings import BaseSettings
 from pydantic import BaseModel
 from exponent_server_sdk import PushClient, PushMessage, PushServerError
-import uvicorn, argparse, os
+import uvicorn, os
 from check_availability import check_availability
 from term import get_term_code
-from collections import defaultdict
 from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy import select
@@ -22,12 +19,6 @@ from logging_config import init_logging
 init_logging()
 
 logger = logging.getLogger(__name__)
-
-class Settings(BaseSettings):
-    course_code: str
-    term_code:   int = get_term_code(next_term=True)
-
-settings: Settings
 push_client = PushClient()
 
 class Sub(BaseModel):
@@ -54,7 +45,7 @@ async def notify(course:str, open_sections:list[str], db: Session = Depends(get_
         except PushServerError as exc:
             logger.error(f"Failed for {subscriber}: {exc}")
     
-def build_app(config: Settings) -> FastAPI:
+def build_app() -> FastAPI:
     app = FastAPI(
         title="UW Notify API",
         version="0.0.0",
@@ -67,15 +58,15 @@ def build_app(config: Settings) -> FastAPI:
         allow_headers=["*"],
     )
     
-    @app.get("/availability/{course}")
-    async def availability(course:str):
-        available_sections = check_availability(course, settings.term_code)
+    @app.get("/availability/{course}/{term}")
+    async def availability(course:str, term:int):
+        available_sections = check_availability(course, term)
         
         if available_sections:
             logger.info("Openings:")
             for section in available_sections:
                 logger.info(f"  {section}")
-            await notify(config.course_code, open_sections)
+            await notify(course, available_sections)
         else:
             logger.info("Class is full.")
             
@@ -110,14 +101,7 @@ def build_app(config: Settings) -> FastAPI:
     return app
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("course_code", help="e.g. 'CLAS 202'")
-    args = parser.parse_args()
-
-    settings = Settings(course_code=args.course_code)
-    app       = build_app(settings)
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app       = build_app()
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=init_logging())
 else:
-    settings = Settings(course_code=os.getenv("COURSE_CODE", "CLAS 202"))
-    app      = build_app(settings)
+    app      = build_app()

@@ -11,5 +11,5 @@ if __name__ == "__main__":
   args = parser.parse_args()
   
   while True:
-    requests.get(SERVER_URL+f"/availability/{args.course_code}")
+    requests.get(SERVER_URL+f"/availability/{args.course_code}/1259")
     sleep(5)
