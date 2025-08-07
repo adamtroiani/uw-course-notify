@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi_utils.tasks import repeat_every
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel
@@ -9,6 +9,20 @@ from term import get_term_code
 from collections import defaultdict
 from fastapi.middleware.cors import CORSMiddleware
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+
+from database import init_db
+from models import Subscriber
+from deps import get_db
+
+import logging
+from logging_config import init_logging
+init_logging()
+
+logger = logging.getLogger(__name__)
+
 class Settings(BaseSettings):
     course_code: str
     term_code:   int = get_term_code(next_term=True)
@@ -16,20 +30,20 @@ class Settings(BaseSettings):
 settings: Settings
 push_client = PushClient()
 
-subscriptions = defaultdict(list)
 class Sub(BaseModel):
     course: str
     push_token: str
+    term: int
 
-async def notify(course:str, open_sections:list[str]):
-    print(f"notifying: {subscriptions[course]}")
-    
+async def notify(course:str, open_sections:list[str], db: Session = Depends(get_db)):
     title = f"A seat opened in {course}!"
     body = ", ".join(open_sections)
         
-    for token in subscriptions[course]:
+    subscribed = select(Subscriber.token).where(Subscriber.course == course).distinct()
+    for subscriber in db.scalars(subscribed):
+        logger.info(f"notifying {subscriber} for {course}")
         message = PushMessage(
-            to=token,
+            to=subscriber,
             sound="default",
             title=title, body=body,
             data={"course": course, "available_sections": open_sections}
@@ -38,7 +52,7 @@ async def notify(course:str, open_sections:list[str]):
         try:
             push_client.publish(message)
         except PushServerError as exc:
-            print(f"Failed for {token}: {exc}")
+            logger.error(f"Failed for {subscriber}: {exc}")
     
 def build_app(config: Settings) -> FastAPI:
     app = FastAPI(
@@ -56,34 +70,42 @@ def build_app(config: Settings) -> FastAPI:
     @app.get("/availability/{course}")
     async def availability(course:str):
         available_sections = check_availability(course, settings.term_code)
+        
+        if available_sections:
+            logger.info("Openings:")
+            for section in available_sections:
+                logger.info(f"  {section}")
+            await notify(config.course_code, open_sections)
+        else:
+            logger.info("Class is full.")
+            
         return {"course": course, "available_sections": available_sections}
 
     @app.post("/subscribe")
-    async def subscribe(sub: Sub):
-        print(f"subscribing: {sub}")
+    async def subscribe(sub: Sub, db: Session = Depends(get_db)):
+        logger.info(f"subscribing: {sub}")
         if not sub.push_token.startswith("ExponentPushToken"):
+            logger.error(f"{sub} is not a valid token")
             raise HTTPException(400, "Not an Expo push token")
-        subscriptions[sub.course].append(sub.push_token)
-        return {"ok": True}
-
-    @repeat_every(seconds=5)
-    async def poll_open_seats() -> None:
-        open_sections = check_availability(
-            config.course_code,
-            config.term_code
+        
+        row = Subscriber(
+            course = Sub.course,
+            term = sub.term,
+            token = sub.push_token
         )
         
-        if open_sections:
-            print("Openings:")
-            for section in open_sections:
-                print(f"  {section}")
-            await notify(config.course_code, open_sections)
-        else:
-            print("Class is full.")
+        try:
+            db.add(row)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return {"created": False}
+            
+        return {"created": True}    
 
     @app.on_event("startup")
     async def _startup() -> None:
-        await poll_open_seats()
+        init_db()
 
     return app
 

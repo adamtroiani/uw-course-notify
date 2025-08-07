@@ -2,11 +2,14 @@ import requests
 import yaml
 import json 
 import argparse
+import logging
+
+logger = logging.getLogger(__name__)
 
 BASE_URL = "https://openapi.data.uwaterloo.ca/v3"
 API_KEYS_PATH = ".env/api_keys.yaml"
 
-def format_section_info(section):
+def format_section_info(section, cur_enrollment):
   course_component = section["courseComponent"]
   section_num = section["classSection"]
   
@@ -22,10 +25,10 @@ def format_section_info(section):
   except:
     time = "null"
   
-  return f"{course_component} {section_num} [{time}]"
+  return f"{course_component} {section_num} ({cur_enrollment}) [{time}]"
   
 def check_availability(course, term_code):
-  print(f"Checking capacity for {course}...")
+  logger.info(f"Checking capacity for {course}...")
   course_subject, catalog_number = course.split(" ")
   url = f"{BASE_URL}/ClassSchedules/{term_code}/{course_subject}/{catalog_number}"
   
@@ -41,7 +44,7 @@ def check_availability(course, term_code):
     file.write(json.dumps(response, indent=2))
     
   if isinstance(response, dict):
-    print("Course not found")
+    logger.error("Course not found")
     return
   
   res = []
@@ -50,8 +53,7 @@ def check_availability(course, term_code):
     enrollment_total = section["enrolledStudents"]
 
     if enrollment_total < enrollment_capacity:
-      print(f"{enrollment_total}/{enrollment_capacity}")
-      res.append(format_section_info(section))
+      res.append(format_section_info(section, f"{enrollment_total}/{enrollment_capacity}"))
   
   return res
 
