@@ -92,7 +92,23 @@ def build_app() -> FastAPI:
             db.rollback()
             return {"created": False}
             
-        return {"created": True}    
+        return {"created": True}  
+      
+    @app.post("/unsubscribe")
+    async def unsubscribe(sub: Sub, db: Session = Depends(get_db)):
+        logger.info(f"UNsubscribing: {sub}")
+        
+        subscriber = db.get(
+            Subscriber,
+            {"course": sub.course, "term": sub.term, "token": sub.push_token}
+        )
+        
+        if subscriber:
+            db.delete(subscriber)
+            db.commit()
+            return {"deleted": True}
+        
+        return {"deleted": False}
 
     @app.on_event("startup")
     async def _startup() -> None:
