@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
 from pydantic import BaseModel
 from exponent_server_sdk import PushClient, PushMessage, PushServerError
 import uvicorn, os
@@ -29,21 +29,21 @@ class Sub(BaseModel):
 async def notify(course:str, open_sections:list[str], db: Session = Depends(get_db)):
     title = f"A seat opened in {course}!"
     body = ", ".join(open_sections)
-        
+
     subscribed = select(Subscriber.token).where(Subscriber.course == course).distinct()
     for subscriber in db.scalars(subscribed):
         logger.info(f"notifying {subscriber} for {course}")
-        message = PushMessage(
-            to=subscriber,
-            sound="default",
-            title=title, body=body,
-            data={"course": course, "available_sections": open_sections}
-        )
+        # message = PushMessage(
+        #     to=subscriber,
+        #     sound="default",
+        #     title=title, body=body,
+        #     data={"course": course, "available_sections": open_sections}
+        # )
         
-        try:
-            push_client.publish(message)
-        except PushServerError as exc:
-            logger.error(f"Failed for {subscriber}: {exc}")
+        # try:
+        #     push_client.publish(message)
+        # except PushServerError as exc:
+        #     logger.error(f"Failed for {subscriber}: {exc}")
     
 def build_app() -> FastAPI:
     app = FastAPI(
@@ -59,14 +59,14 @@ def build_app() -> FastAPI:
     )
     
     @app.get("/availability/{course}/{term}")
-    async def availability(course:str, term:int):
+    async def availability(course:str, term:int, background_tasks: BackgroundTasks):
         available_sections = check_availability(course, term)
         
         if available_sections:
             logger.info("Openings:")
             for section in available_sections:
                 logger.info(f"  {section}")
-            await notify(course, available_sections)
+            background_tasks.add_task(notify, course, available_sections)
         else:
             logger.info("Class is full.")
             
@@ -117,7 +117,9 @@ def build_app() -> FastAPI:
     return app
 
 if __name__ == "__main__":
+    # running locally
     app       = build_app()
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=init_logging())
 else:
+    # for cloud server
     app      = build_app()

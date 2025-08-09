@@ -1,0 +1,12 @@
+[Unit]
+Description=UW Notify FastAPI
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/github/uw-course-notify
+ExecStart=/home/ubuntu/github/uw-course-notify/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

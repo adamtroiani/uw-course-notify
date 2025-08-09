@@ -2,9 +2,9 @@ import requests
 import argparse
 from time import sleep
 
-SERVER_URL = "http://0.0.0.0:8000"
-  
-  
+SERVER_URL = "https://api.adamtroiani.com"
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Check course capacity")
   parser.add_argument("course_code", help="Course code to check (i.e. CLAS 202)")
@@ -12,5 +12,6 @@ if __name__ == "__main__":
   
   print(f"Polling {args.course_code}...")
   while True:
-    requests.get(SERVER_URL+f"/availability/{args.course_code}/1259")
+    response = requests.get(SERVER_URL+f"/availability/{args.course_code}/1259")
+    print(response.json())
     sleep(5)

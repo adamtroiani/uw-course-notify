@@ -1,5 +1,7 @@
 .env/api_keys.yaml
-.debug
+.debug/*
+.venv
+
 app.db
 .DS_Store
 __pycache__
