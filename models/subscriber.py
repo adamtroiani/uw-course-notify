@@ -10,5 +10,9 @@ class Subscriber(Base):
   term: Mapped[int] = mapped_column(primary_key=True, nullable=False)
   token: Mapped[str] = mapped_column(primary_key=True, nullable=False)
   
-  created_at: Mapped[dt.datetime]
-  
+  created_at: Mapped[dt.datetime] = mapped_column(
+    nullable=False, default=dt.datetime.utcnow
+  )
+  last_notified: Mapped[dt.datetime] = mapped_column(
+    nullable=True, default=None
+  )

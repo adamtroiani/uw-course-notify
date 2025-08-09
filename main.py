@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from exponent_server_sdk import PushClient, PushMessage, PushServerError
 import uvicorn
@@ -55,20 +56,22 @@ def build_app() -> FastAPI:
 
     @app.post("/subscribe")
     async def subscribe(sub: Sub, db: Session = Depends(get_db)):
-        logger.info(f"subscribing: {sub}")
+        logger.info(f"Subscribing: {sub}...")
         if not sub.push_token.startswith("ExponentPushToken"):
             logger.error(f"{sub} is not a valid token")
             raise HTTPException(400, "Not an Expo push token")
 
-        row = Subscriber(course=Sub.course, term=sub.term, token=sub.push_token)
+        row = Subscriber(course=sub.course, term=sub.term, token=sub.push_token)
 
         try:
             db.add(row)
             db.commit()
         except IntegrityError:
             db.rollback()
+            logger.exception("Insert failed")
             return {"created": False}
 
+        logger.info("Successfully subscribed")
         return {"created": True}
 
     @app.post("/unsubscribe")

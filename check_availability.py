@@ -39,13 +39,13 @@ def check_availability(course, term_code):
 
   response = requests.get(url, headers=headers).json()
   if isinstance(response, dict) and response.get("status", None) == 404:
+    with open(".debug/response.json", "w") as file:
+      file.write(json.dumps(response, indent=2))
     return ["Course does not exist or has been cancelled"]
   
   response = list(filter(lambda section: section["courseComponent"] == "LEC", response))
   response.sort(key=lambda section: section["classSection"])
-  with open(".debug/response.json", "w") as file:
-    file.write(json.dumps(response, indent=2))
-    
+  
   if isinstance(response, dict):
     logger.error("Course not found")
     return

@@ -64,8 +64,8 @@ def main():
 
     print("Subscribed. Press Ctrl+C to unsubscribe and exit…")
     try:
-        while True:
-            time.sleep(3600)
+        while input() != "q":
+            pass
     except KeyboardInterrupt:
         cleanup()
 
