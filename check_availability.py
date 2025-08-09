@@ -38,6 +38,9 @@ def check_availability(course, term_code):
     headers["x-api-key"] = api_keys.get("uwaterloo")
 
   response = requests.get(url, headers=headers).json()
+  if isinstance(response, dict) and response.get("status", None) == 404:
+    return ["Course does not exist or has been cancelled"]
+  
   response = list(filter(lambda section: section["courseComponent"] == "LEC", response))
   response.sort(key=lambda section: section["classSection"])
   with open(".debug/response.json", "w") as file:

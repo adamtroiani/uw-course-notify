@@ -26,9 +26,7 @@ export const useGlobalContext = () => {
 };
 
 export default function Index() {
-  const API_HOST = __DEV__
-    ? `http://${Constants.expoConfig!.hostUri!.split(":")[0]}:8000`
-    : "#TODO";
+  const API_HOST = "https://api.adamtroiani.com";
 
   const [course, setCourse] = useState("");
   const { token, permission } = usePushNotifications(course, API_HOST);
