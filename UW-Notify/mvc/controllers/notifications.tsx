@@ -33,13 +33,6 @@ export function usePushNotifications(courseCode: string, apiHost: string) {
       });
       if (!isMounted) return;
       setToken(data);
-
-      /* 4️⃣ Tell your FastAPI backend you want alerts */
-      await fetch(`${apiHost}/subscribe`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ course: courseCode, push_token: data }),
-      });
     })();
 
     return () => {

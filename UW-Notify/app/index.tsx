@@ -1,8 +1,17 @@
-import React, { useState, createContext, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  useCallback,
+} from "react";
 import { Text, TextInput, View, StyleSheet } from "react-native";
 import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
 import { usePushNotifications } from "@/mvc/controllers/notifications";
+import { getCourses } from "@/mvc/models/courseStore";
+import SubscribeButton from "@/mvc/views/subscribeButton";
+import SubscribedCourse from "@/mvc/views/subscribedCourse";
+import { GlobalProvider } from "@/mvc/models/context";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -31,46 +40,80 @@ export default function Index() {
   const [course, setCourse] = useState("");
   const { token, permission } = usePushNotifications(course, API_HOST);
 
+  const [subs, setSubs] = useState<string[]>([]);
+
+  const refreshSubs = useCallback(async (resetCourse: boolean) => {
+    const list = await getCourses();
+    setSubs(list);
+    if (resetCourse) setCourse("");
+  }, []);
+
+  let term: string | null = null;
+
+  useEffect(() => {
+    refreshSubs(false);
+  }, [refreshSubs]);
+
   return (
-    <Context.Provider value={{ apiHost: API_HOST, token: token }}>
+    <GlobalProvider value={{ apiHost: API_HOST, token: token }}>
       <View style={styles.container}>
-        <Text style={styles.heading}>Welcome to UW Notify 🌐</Text>
-        <View style={styles.courseInput}>
-          <Text>Please enter a course:</Text>
-          <TextInput
-            placeholder="e.g. CLAS 202"
-            maxLength={10}
-            style={styles.box}
-            value={course}
-            onChangeText={setCourse}
-            autoCapitalize="characters"
-          />
+        <View style={styles.container}>
+          <Text style={styles.heading}>Welcome to UW Notify 🌐</Text>
+          <View style={styles.courseInput}>
+            <Text>Please enter a course:</Text>
+            <TextInput
+              placeholder="e.g. CLAS 202"
+              maxLength={10}
+              style={[styles.box, { minWidth: 80, maxWidth: 100 }]}
+              value={course}
+              onChangeText={setCourse}
+              autoCapitalize="characters"
+            />
+            <View style={[styles.courseInput, styles.box, { width: 22 }]}>
+              <SubscribeButton
+                course={course}
+                onSub={() => refreshSubs(true)}
+              />
+            </View>
+          </View>
+        </View>
+        <View style={styles.watchlist}>
+          {subs.length === 0 ? (
+            <>
+              <Text>Your watchlist is empty!</Text>
+              <Text>Get started by adding a course 📚</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.heading}>My Watchlist</Text>
+              {subs.map((course) => (
+                <SubscribedCourse
+                  key={`${course}-${term}`}
+                  course={course}
+                  termCode={1259}
+                  onChanged={() => refreshSubs(false)}
+                />
+              ))}
+            </>
+          )}
         </View>
       </View>
-      <View style={styles.container}>
-        // change to get courses from storage
-        {course && (
-          <>
-            <Text>Checking availability for {course}...</Text>
-          </>
-        )}
-      </View>
-    </Context.Provider>
+    </GlobalProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  body: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
+  },
+  watchlist: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
   },
   courseInput: {
     flexDirection: "row",
@@ -84,8 +127,5 @@ const styles = StyleSheet.create({
     borderStyle: "solid",
     padding: 2,
   },
-  heading: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  heading: { fontSize: 16, fontWeight: "bold" },
 });
