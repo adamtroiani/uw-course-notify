@@ -28,21 +28,12 @@ def format_section_info(section, cur_enrollment):
   return f"{course_component} {section_num} ({cur_enrollment}) [{time}]"
   
 def check_availability(course, term_code):
-  logger.info(f"Checking capacity for {course}...")
-  course_subject, catalog_number = course.split(" ")
-  url = f"{BASE_URL}/ClassSchedules/{term_code}/{course_subject}/{catalog_number}"
+  logger.info(f"Checking capacity for {course} during term {term_code}...")
   
-  headers = {}
-  with open(API_KEYS_PATH, "r") as file:
-    api_keys = yaml.safe_load(file)
-    headers["x-api-key"] = api_keys.get("uwaterloo")
+  response, course_exists = req_course_data(course, term_code)
+  if not course_exists:
+    return []
 
-  response = requests.get(url, headers=headers).json()
-  if isinstance(response, dict) and response.get("status", None) == 404:
-    with open(".debug/response.json", "w") as file:
-      file.write(json.dumps(response, indent=2))
-    return ["Course does not exist or has been cancelled"]
-  
   response = list(filter(lambda section: section["courseComponent"] == "LEC", response))
   response.sort(key=lambda section: section["classSection"])
   
@@ -60,6 +51,25 @@ def check_availability(course, term_code):
   
   return res
 
+def req_course_data(course, term_code):
+  course_subject, catalog_number = course.split(" ")
+  url = f"{BASE_URL}/ClassSchedules/{term_code}/{course_subject}/{catalog_number}"
+  
+  headers = {}
+  with open(API_KEYS_PATH, "r") as file:
+    api_keys = yaml.safe_load(file)
+    headers["x-api-key"] = api_keys.get("uwaterloo")
+  
+  response = requests.get(url, headers=headers).json()
+  
+  if isinstance(response, dict) and response.get("status", None) == 404:
+    with open(".debug/response.json", "w") as file:
+      file.write(json.dumps(response, indent=2))
+    
+    return response, False
+
+  return response, True
+  
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="Check course capacity")
   parser.add_argument("course_code", help="Course code to check (i.e. CLAS 202)")

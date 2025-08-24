@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from exponent_server_sdk import PushClient, PushMessage, PushServerError
 import uvicorn
-from check_availability import check_availability
+from check_availability import check_availability, req_course_data
 from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.orm import Session
@@ -56,11 +56,16 @@ def build_app() -> FastAPI:
 
     @app.post("/subscribe")
     async def subscribe(sub: Sub, db: Session = Depends(get_db)):
-        logger.info(f"Subscribing: {sub}...")
+        logger.info(f"Subscribing: {sub.push_token} to {sub.course}...")
         if not sub.push_token.startswith("ExponentPushToken"):
             logger.error(f"{sub} is not a valid token")
             raise HTTPException(400, "Not an Expo push token")
 
+        resp, course_exists = req_course_data(sub.course, sub.term)
+        if not course_exists:
+            logger.error(f"Subscribe failed: {sub.course} ({sub.term}) is not a valid course")
+            raise HTTPException(404, "Subscription failure: course does not exist")
+        
         row = Subscriber(course=sub.course, term=sub.term, token=sub.push_token)
 
         try:
