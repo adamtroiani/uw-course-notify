@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "UW-Notify",
+    "name": "UW Notify",
     "slug": "UW-Notify",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,14 +9,19 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.adamtroiani.uwnotify",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.adamtroiani.UWNotify"
     },
     "web": {
       "bundler": "metro",
@@ -39,7 +44,11 @@
       "typedRoutes": true
     },
     "extra": {
-      "projectId": "a433e5ea-8784-43b8-a46e-4fd691907705"
+      "projectId": "a433e5ea-8784-43b8-a46e-4fd691907705",
+      "router": {},
+      "eas": {
+        "projectId": "febb92d2-076d-4e50-af09-0ee8d1c9e7eb"
+      }
     }
   }
 }
