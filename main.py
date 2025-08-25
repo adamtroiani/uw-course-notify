@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from pydantic import BaseModel
 from exponent_server_sdk import PushClient, PushMessage, PushServerError
 import uvicorn
@@ -41,6 +43,16 @@ def build_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        body = (await request.body()).decode("utf-8", "ignore")[:2000]
+        logger.error("422 on %s %s\nerrors=%s\nbody=%s",
+                    request.method, request.url.path, exc.errors(), body)
+        return JSONResponse(
+            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+            content={"detail": exc.errors()},
+        )
+    
     @app.get("/availability/{course}/{term}")
     async def availability(course: str, term: int, background_tasks: BackgroundTasks):
         available_sections = check_availability(course, term)
@@ -63,9 +75,11 @@ def build_app() -> FastAPI:
 
         resp, course_exists = req_course_data(sub.course, sub.term)
         if not course_exists:
-            logger.error(f"Subscribe failed: {sub.course} ({sub.term}) is not a valid course")
+            logger.error(
+                f"Subscribe failed: {sub.course} ({sub.term}) is not a valid course"
+            )
             raise HTTPException(404, "Subscription failure: course does not exist")
-        
+
         row = Subscriber(course=sub.course, term=sub.term, token=sub.push_token)
 
         try:

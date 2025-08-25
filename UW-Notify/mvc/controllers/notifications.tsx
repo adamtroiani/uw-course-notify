@@ -28,9 +28,11 @@ export function usePushNotifications(courseCode: string, apiHost: string) {
       if (status !== "granted") return; // user said “Don’t Allow”
 
       /* 3️⃣ Get Expo push token */
-      const { data } = await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.projectId,
-      });
+      const projectId =
+        Constants.easConfig?.projectId ?? // prod
+        Constants.expoConfig?.extra?.projectId; // dev
+
+      const { data } = await Notifications.getExpoPushTokenAsync({});
       if (!isMounted) return;
       setToken(data);
     })();
