@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from pydantic import BaseModel
@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from database import init_db
 from models import Subscriber
 from deps import get_db
+from privacy_policy import PRIVACY_HTML
 
 import logging
 from logging_config import init_logging
@@ -44,15 +45,22 @@ def build_app() -> FastAPI:
     )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
         body = (await request.body()).decode("utf-8", "ignore")[:2000]
-        logger.error("422 on %s %s\nerrors=%s\nbody=%s",
-                    request.method, request.url.path, exc.errors(), body)
+        logger.error(
+            "422 on %s %s\nerrors=%s\nbody=%s",
+            request.method,
+            request.url.path,
+            exc.errors(),
+            body,
+        )
         return JSONResponse(
             status_code=HTTP_422_UNPROCESSABLE_ENTITY,
             content={"detail": exc.errors()},
         )
-    
+
     @app.get("/availability/{course}/{term}")
     async def availability(course: str, term: int, background_tasks: BackgroundTasks):
         available_sections = check_availability(course, term)
@@ -108,6 +116,10 @@ def build_app() -> FastAPI:
             return {"deleted": True}
 
         return {"deleted": False}
+
+    @app.get("/privacy", response_class=HTMLResponse)
+    def privacy():
+        return HTMLResponse(PRIVACY_HTML, media_type="text/html; charset=utf-8")
 
     @app.on_event("startup")
     async def _startup() -> None:
