@@ -16,7 +16,7 @@ import { GlobalProvider } from "@/mvc/models/context";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
-    shouldPlaySound: false,
+    shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,
     shouldShowList: true,
@@ -59,7 +59,7 @@ export default function Index() {
       <View style={styles.container}>
         <View style={styles.container}>
           <Text style={styles.heading}>Welcome to UW Notify 🌐</Text>
-          {permission !== "granted" ? (
+          {permission !== "granted" || !token ? (
             <View style={styles.noticeWrap}>
               <Text style={styles.noticeText}>
                 Please enable notifications to begin adding courses ‼️
@@ -87,7 +87,7 @@ export default function Index() {
             </>
           )}
         </View>
-        {permission === "granted" && (
+        {permission === "granted" && token && (
           <View style={styles.watchlist}>
             {subs.length === 0 ? (
               <>

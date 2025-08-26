@@ -1,2 +1,2 @@
-npm install -g eas-cli && eas login
-eas build --platform ios --profile production --auto-submit --auto-increment
+eas build --local --profile production --platform ios \
+&& eas submit --platform ios --latest --profile production

@@ -32,9 +32,11 @@ export function usePushNotifications(courseCode: string, apiHost: string) {
         Constants.easConfig?.projectId ?? // prod
         Constants.expoConfig?.extra?.projectId; // dev
 
-      const { data } = await Notifications.getExpoPushTokenAsync({});
+      const { data } = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      );
       if (!isMounted) return;
-      setToken(data);
+      setToken(data ?? null);
     })();
 
     return () => {

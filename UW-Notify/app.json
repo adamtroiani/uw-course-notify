@@ -30,6 +30,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
@@ -44,7 +45,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "projectId": "a433e5ea-8784-43b8-a46e-4fd691907705",
+      "projectId": "febb92d2-076d-4e50-af09-0ee8d1c9e7eb",
       "router": {},
       "eas": {
         "projectId": "febb92d2-076d-4e50-af09-0ee8d1c9e7eb"

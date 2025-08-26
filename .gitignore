@@ -1,7 +1,6 @@
 .env/api_keys.yaml
 .debug/*
 .venv
-google_service_key.json
 
 app.db
 .DS_Store

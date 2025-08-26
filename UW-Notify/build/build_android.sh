@@ -1,2 +1,2 @@
-npm install -g eas-cli && eas login
-eas build --platform android --profile production --auto-submit --auto-increment
+eas build --local --profile production --platform android \
+&& eas submit --platform android --latest --profile production
