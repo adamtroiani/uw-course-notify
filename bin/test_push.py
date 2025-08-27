@@ -21,4 +21,4 @@ def test_push(token):
 
 # Test both:
 test_push("ExponentPushToken[GBpRR1IJ39MhTdHE5ZU2H_]")
-test_push("ExponentPushToken[KrJTiFJv5fUC93VOdatS0n]")
+test_push("ExponentPushToken[sA7z8-BDdnS1ZQkvzHXg82]")

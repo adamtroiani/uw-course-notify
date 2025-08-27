@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from database import init_db
 from models import Subscriber
 from deps import get_db
-from privacy_policy import PRIVACY_HTML
+from privacy_and_support import PRIVACY_HTML, SUPPORT_HTML
 
 import logging
 from logging_config import init_logging
@@ -120,6 +120,10 @@ def build_app() -> FastAPI:
     @app.get("/privacy", response_class=HTMLResponse)
     def privacy():
         return HTMLResponse(PRIVACY_HTML, media_type="text/html; charset=utf-8")
+    
+    @app.get("/support", response_class=HTMLResponse)
+    def support():
+        return HTMLResponse(SUPPORT_HTML, media_type="text/html; charset=utf-8")
 
     @app.on_event("startup")
     async def _startup() -> None:
