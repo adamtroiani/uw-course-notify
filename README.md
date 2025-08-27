@@ -1,3 +1,5 @@
+[Try UW Notify on the App Store](https://apps.apple.com/app/uw-notify/id6751511830)
+
 I was inspired to build this app when I didn't get into CLAS 202. The course is extremely popular, and, because I'm busy at work, I probably wouldn't notice if a seat opened in the class. Moreover, I couldn't find a replacement course because nothing seemed interesting. If only there was a way I could have an edge over those that are manually checking UW Quest often to see if the course opened up...
 
 There exists notification based solutions already - namely UWFlow - but it sends notifications via email and does not scrape the UWaterloo servers nearly as often. Having to remember check your emails often defeats the purpose, especially when the email might not be sent in time.
