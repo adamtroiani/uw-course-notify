@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { addCourse, getCourses } from "../models/courseStore";
+import { addCourse, Course, getCourses } from "../models/courseStore";
 import React from "react";
 import { StyledButton } from "./styledButton";
 import { useGlobalContext } from "../models/context";
+import { get_term, term_to_str } from "../controllers/get_term";
 
 export default function SubscribeButton({
-  course,
+  code,
   onSub,
 }: {
-  course: string;
+  code: string;
   onSub: () => void;
 }) {
   const { apiHost, token } = useGlobalContext();
@@ -18,17 +19,20 @@ export default function SubscribeButton({
     const loadCourses = async () => {
       const courses = await getCourses();
       setSubbed(
-        course === "" ||
-          courses.some((c) => c === course || courses.length == 5)
+        code === "" ||
+          courses.some((c) => c.code === code || courses.length == 5)
       );
     };
 
     loadCourses();
-  }, [course]);
+  }, [code]);
 
   const handlePress = async () => {
-    console.log(`button pressed - subscribing to ${course}`);
-    if (!course) {
+    const course = new Course(code, get_term());
+    console.log(
+      `button pressed - subscribing to ${course.code} - ${course.term}`
+    );
+    if (!course.code) {
       return;
     }
 
@@ -36,14 +40,20 @@ export default function SubscribeButton({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        course: course,
+        course: course.code,
         push_token: token,
-        term: 1259, // TODO: fetch term on app launch directly from UW instead of hitting my server to reduce load (i.e. useEffect in index.ts) instead of hardcoding
+        term: course.term,
       }),
     })
       .then((response) => {
         if (!response.ok) {
-          alert(`${course} does not exist or is not being offered this term!`);
+          alert(
+            `${
+              course.code
+            } does not exist or is not being offered this term (${term_to_str(
+              course.term
+            )}), or add period has not begun!`
+          );
           console.log(
             "Course does not exist or is not being offered this term!"
           );

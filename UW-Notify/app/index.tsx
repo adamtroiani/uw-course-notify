@@ -8,10 +8,11 @@ import React, {
 import { Text, TextInput, View, StyleSheet } from "react-native";
 import * as Notifications from "expo-notifications";
 import { usePushNotifications } from "@/mvc/controllers/notifications";
-import { getCourses } from "@/mvc/models/courseStore";
+import { Course, getCourses } from "@/mvc/models/courseStore";
 import SubscribeButton from "@/mvc/views/subscribeButton";
 import SubscribedCourse from "@/mvc/views/subscribedCourse";
 import { GlobalProvider } from "@/mvc/models/context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -40,15 +41,13 @@ export default function Index() {
   const [course, setCourse] = useState("");
   const { token, permission } = usePushNotifications(course, API_HOST);
 
-  const [subs, setSubs] = useState<string[]>([]);
+  const [subs, setSubs] = useState<Course[]>([]);
 
   const refreshSubs = useCallback(async (resetCourse: boolean) => {
     const list = await getCourses();
     setSubs(list);
     if (resetCourse) setCourse("");
   }, []);
-
-  let term: string | null = null;
 
   useEffect(() => {
     refreshSubs(false);
@@ -79,7 +78,7 @@ export default function Index() {
                 />
                 <View style={[styles.courseInput, styles.box, { width: 22 }]}>
                   <SubscribeButton
-                    course={course}
+                    code={course}
                     onSub={() => refreshSubs(true)}
                   />
                 </View>
@@ -97,11 +96,10 @@ export default function Index() {
             ) : (
               <>
                 <Text style={styles.heading}>My Watchlist</Text>
-                {subs.map((course) => (
+                {subs.map((c) => (
                   <SubscribedCourse
-                    key={`${course}-${term}`}
-                    course={course}
-                    termCode={1259}
+                    key={`${c.code}-${c.term}`}
+                    course={c}
                     onChanged={() => refreshSubs(false)}
                   />
                 ))}

@@ -1,34 +1,29 @@
 import { Text, View, StyleSheet } from "react-native";
 import React from "react";
 import { StyledButton } from "./styledButton";
-import { removeCourse } from "../models/courseStore";
+import { Course, removeCourse } from "../models/courseStore";
 import { useGlobalContext } from "../models/context";
+import { term_to_str } from "../controllers/get_term";
 
 export default function SubscribedCourse({
   course,
-  termCode,
   onChanged,
 }: {
-  course: string;
-  termCode: Number;
+  course: Course;
   onChanged: () => void;
 }) {
   const { apiHost, token } = useGlobalContext();
 
-  function unsubscribeCourse(
-    course: string,
-    expoToken: string,
-    term: Number
-  ): void {
+  function unsubscribeCourse(course: Course, expoToken: string): void {
     fetch(apiHost + "/unsubscribe", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        course: course,
+        course: course.code,
         push_token: expoToken,
-        term: term,
+        term: course.term,
       }),
     })
       .then((response) => {
@@ -40,7 +35,7 @@ export default function SubscribedCourse({
         return response.json();
       })
       .then(async () => {
-        console.log(`successfuly unsubbed ${course}!`);
+        console.log(`successfuly unsubbed ${course.code} - ${course.term}!`);
         await removeCourse(course);
         await onChanged();
       });
@@ -49,12 +44,16 @@ export default function SubscribedCourse({
   return (
     <View style={styles.container}>
       <View style={[styles.courseView, styles.box]}>
-        <Text>{course}</Text>
+        <Text>
+          {course.code} - {term_to_str(course.term)}
+        </Text>
       </View>
       <StyledButton
         onPress={() => {
-          console.log(`pressed unsub button for ${course}`);
-          unsubscribeCourse(course, token || "", termCode);
+          console.log(
+            `pressed unsub button for ${course.code} - ${course.term}`
+          );
+          unsubscribeCourse(course, token || "");
         }}
         text="☒"
         disabled={!token}
@@ -72,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   courseView: {
-    width: 120,
+    width: 175,
     height: 35,
     justifyContent: "center",
     paddingLeft: 4,
