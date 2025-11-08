@@ -27,10 +27,10 @@ small{color:#666} ul{margin:.3rem 0 .8rem 1.2rem} </style>
 <ul>
   <li>Watchlist + push token are kept while notifications are enabled</li>
   <li>Remove courses or uninstall the app to stop notifications</li>
-  <li>To request deletion of server-stored data, email <a href="mailto:dev@adamtroiani.com">dev@adamtroiani.com</a> and include your device’s push token from the app</li>
+  <li>To request deletion of server-stored data, email <a href="mailto:uw-notify@adamtroiani.com">uw-notify@adamtroiani.com</a> and include your device’s push token from the app</li>
 </ul>
 <h2>Contact</h2>
-<p>Adam Troiani — <a href="mailto:dev@adamtroiani.com">dev@adamtroiani.com</a></p>
+<p>Adam Troiani — <a href="mailto:uw-notify@adamtroiani.com">uw-notify@adamtroiani.com</a></p>
 </body></html>
 """
 
@@ -55,7 +55,7 @@ SUPPORT_HTML = """
 <p>Welcome! This page explains how to get help with UW Notify and includes quick troubleshooting tips.</p>
 
 <h2>Contact</h2>
-<p>Email: <a href="mailto:dev@adamtroiani.com">dev@adamtroiani.com</a></p>
+<p>Email: <a href="mailto:uw-notify@adamtroiani.com">uw-notify@adamtroiani.com</a></p>
 <ul>
   <li>Please include your device model (e.g., iPhone 14), OS version (e.g., iOS 17.x / Android 14), app version (see App Store / Play Store), and a short description of the issue.</li>
   <li>Screenshots are helpful when possible.</li>
@@ -72,7 +72,7 @@ SUPPORT_HTML = """
 
 <h2>Request Data Deletion</h2>
 <p>UW Notify stores your watchlist and an Expo push token to deliver notifications. To request deletion of this data, email
-<a href="mailto:dev@adamtroiani.com">dev@adamtroiani.com</a>. If possible, include your device’s push token (you can copy it from the app if exposed, or request instructions).</p>
+<a href="mailto:uw-notify@adamtroiani.com">uw-notify@adamtroiani.com</a>. If possible, include your device’s push token (you can copy it from the app if exposed, or request instructions).</p>
 
 <h2>Report a Bug</h2>
 <ul>
